@@ -16,6 +16,9 @@ let deseaVolverComprar = false;
 let total = 0;
 let precioProducto = 0;
 let descripcionProducto = "";
+let deseaAgregarMasProductos = false;
+let detalleFactura = "";
+let nuevaCantidadPedida = 0;
 let metodosPago = [{
     id : 1,
     metodo : "Debito",
@@ -26,96 +29,137 @@ let metodosPago = [{
     id : 3,
     metodo : "Contra entrega",
 }];
-let productos = [{
-    id : 1,
-    producto : "Alarmas",
-    precio : 15,
-    stock : 50,
-  },{
-    id : 2,
-    producto : "Escopeta",
-    precio : 34,
-    stock : 30,
-  },{
-    id : 3,
-    producto : "Binocular",
-    precio : 24,
-    stock : 45,
-  }];
-alert("Bienvenido a Tienda Mackalister");
-while(realizoCompra == false){
-    //mostrar listad de productos
-    listaProductosTienda = obtenerProductos(productos);
-    numeroProducto = prompt("Escoja el producto que quiera comprar: " + listaProductosTienda + "\n\nEscriba el numero del producto que quiera comprar:");
-    if(numeroProducto == null){
-        break;
-    }
-    else{
-        indiceProducto = consultarProducto(numeroProducto, productos);
-        if(indiceProducto == null){
-            alert("ERROR: No existe el producto seleccionado.");
-        }
-        else{
-            cantidadPedida = prompt("Ingrese cantidad deseada del producto: ");
-            existeStock = consultarStock(cantidadPedida, numeroProducto, productos);
-            while(existeStock == false){
-                alert("ERROR: Ingrese una cantidad correcta dentro del stock del producto seleccionado.");
-                cantidadPedida= prompt("Ingrese cantidad deseada del producto: ");
-                existeStock = consultarStock(cantidadPedida, numeroProducto, productos);
-            }
-            metodoPagoEligdo = prompt("Escriba el numero del metodo de pago que quiera hacer: \n1.Debito \n2.Credito \n3.Contra entrega");
-            descripcionMetodoPago = consultarMetodoPago(metodoPagoEligdo, metodosPago);
-            if(metodoPagoEligdo != null){
-                while(descripcionMetodoPago == ""){
-                    alert("ERROR: Este metodo de pago no existe");
-                    metodoPagoEligdo = prompt("Escriba el numero del metodo de pago que quiera hacer: \n1.Debito \n2.Credito \n3.Contra entrega");
-                    descripcionMetodoPago = consultarMetodoPago(metodoPagoEligdo, metodosPago);
-                }
-                if(descripcionMetodoPago != "debito" && descripcionMetodoPago != "credito"){
-                    nombreCliente = prompt("Escriba su nombre: ");
-                    direccionCliente = prompt("Escriba su direccion de domicilio: ");
-                    while(nombreCliente == "" || nombreCliente == null || direccionCliente == "" || direccionCliente == null){
-                        alert("ERROR: Hay campos vacios");
-                        if(descripcionMetodoPago != "debito" && descripcionMetodoPago != "credito"){
-                            nombreCliente = prompt("Escriba su nombre: ");
-                            direccionCliente = prompt("Escriba su direccion de domicilio: ");
-                        }
-                    }
-                }
-                else{
-                    nombreCliente = prompt("Escriba su nombre: ");
-                    numeroCuentaCliente = prompt("Escriba el numero de su cuenta bancaria: ");
-                    direccionCliente = prompt("Escriba su direccion de domicilio: ");
-                    while(nombreCliente == "" || nombreCliente == null || direccionCliente == "" || direccionCliente == null || numeroCuentaCliente == "" || numeroCuentaCliente == null){
-                        nombreCliente = prompt("Escriba su nombre: ");
-                            numeroCuentaCliente = prompt("Escriba el numero de su cuenta bancaria: ");
-                            direccionCliente = prompt("Escriba su direccion de domicilio: ");
-                    }                       
-                }
-                descripcionProducto = productos[indiceProducto].producto
-                precioProducto = productos[indiceProducto].precio;
-                total = precioProducto * cantidadPedida; 
-                realizoPago = confirm("************** FACTURA ELECTRONICA **************" + "\n\nNombre: " +  nombreCliente + "\nDireccion de domicilio: " + direccionCliente + "\nProductos Comprados: " + descripcionProducto + "\nCantidad de productos comprados: " + cantidadPedida + "\nPrecio del producto: S/. " + parseFloat(precioProducto) +"\nMetodo de Pago: " + descripcionMetodoPago + "\nTotal: S/. " + total + "\n*******************************************************");
-                while(realizoPago == false && canceloCompra == false){
-                    canceloCompra = confirm("Esta seguro de cancelar su compra?");
-                    if(canceloCompra == false){
-                        realizoPago = confirm("************** FACTURA ELECTRONICA **************" + "\n\nNombre: " + nombreCliente + "\nDireccion de domicilio: " + direccionCliente + "\nProductos Comprados: " + descripcionProducto + "\nCantidad de productos comprados: " + cantidadPedida + "\nPrecio del producto: S/. " + parseFloat(precioProducto) +"\nMetodo de Pago: " + descripcionMetodoPago + "\nTotal: S/. " + total + "\n*******************************************************");
-                    }
-                }
-                if(realizoPago == true){
-                    alert("Gracias por su compra Sr(a): " + nombreCliente);
-                    actualizoStock = actualizarStockProducto(cantidadPedida, indiceProducto, productos);
-                    deseaVolverComprar = confirm("Desea comprar otro producto?");
-                    if(deseaVolverComprar == false){
-                        realizoCompra = true;
-                    }
-                }
-            }            
-        }
+
+let carritoDeCompras = [];
+let objCliente;
+let objProducto;
+
+class Persona {
+    constructor(nombre, numeroCuenta, direccion){
+        this.nombre = nombre;
+        this.numeroCuenta = numeroCuenta;
+        this.direccion = direccion;
     }
 }
 
+class Productos {
+    constructor(id, producto, precio, stock, cantidadPedida){
+        this.id = id;
+        this.producto = producto;
+        this.precio = precio;
+        this.stock = stock;
+        this.cantidadPedida = cantidadPedida;
+    }
+    calcularSubTotal(){
+        return this.precio * this.cantidadPedida;
+    }
+    actualizarCantidadPedida(cantidadPedida){
+        let nuevaCantidadPedida = 0;
+        if(cantidadPedida > 0){
+            if((parseInt(this.cantidadPedida) + parseInt(cantidadPedida)) <= this.stock){
+                nuevaCantidadPedida = parseInt(this.cantidadPedida) + parseInt(cantidadPedida);
+                this.cantidadPedida = nuevaCantidadPedida;
+            }
+        }
+        return nuevaCantidadPedida;
+    }
 
+}
+let producto1 = new Productos(1, "Alarmas", 15, 50, 0);
+let producto2 = new Productos(2, "Escopeta", 34, 30, 0);
+let producto3 = new Productos(3, "Binocular", 24, 45, 0);
+
+let productos = [producto1,producto2,producto3];
+
+alert("Bienvenido a Tienda Mackalister");
+realizarCompra()
+
+function realizarCompra(){
+    while(realizoCompra == false){
+        //mostrar listad de productos
+        listaProductosTienda = obtenerProductos(productos);
+        numeroProducto = prompt("Escoja el producto que quiera comprar: " + listaProductosTienda + "\n\nEscriba el numero del producto que quiera comprar:");
+        if(numeroProducto == null){
+            break;
+        }
+        else{
+            indiceProducto = consultarProducto(numeroProducto, productos);
+            if(indiceProducto == null){
+                alert("ERROR: No existe el producto seleccionado.");
+            }
+            else{
+                cantidadPedida = prompt("Ingrese cantidad deseada del producto: ");
+                objProducto = productos.find((objProducto) => objProducto.id == numeroProducto);
+                console.log("objProducto: " + objProducto);
+                nuevaCantidadPedida = objProducto.actualizarCantidadPedida(cantidadPedida);
+                console.log("nuevaCantidadPedida: " + nuevaCantidadPedida);
+                if(nuevaCantidadPedida != 0){
+                    existeStock = true;
+                    agregarAlCarrito(numeroProducto, nuevaCantidadPedida, carritoDeCompras);
+                    deseaAgregarMasProductos = confirm("Desea agregar otro producto al carrito.");
+                    if(deseaAgregarMasProductos == false){
+                        metodoPagoEligdo = prompt("Escriba el numero del metodo de pago que quiera hacer: \n1.Debito \n2.Credito \n3.Contra entrega");
+                        descripcionMetodoPago = consultarMetodoPago(metodoPagoEligdo, metodosPago);
+                        if(metodoPagoEligdo != null){
+                            while(descripcionMetodoPago == ""){
+                                alert("ERROR: Este metodo de pago no existe");
+                                metodoPagoEligdo = prompt("Escriba el numero del metodo de pago que quiera hacer: \n1.Debito \n2.Credito \n3.Contra entrega");
+                                descripcionMetodoPago = consultarMetodoPago(metodoPagoEligdo, metodosPago);
+                            }
+                            if(descripcionMetodoPago != "Debito" && descripcionMetodoPago != "Credito"){
+                                nombreCliente = prompt("Escriba su nombre: ");
+                                direccionCliente = prompt("Escriba su direccion de domicilio: ");
+                                objCliente = new Persona(nombreCliente,"",direccionCliente);
+                                while(nombreCliente == "" || nombreCliente == null || direccionCliente == "" || direccionCliente == null){
+                                    alert("ERROR: Hay campos vacios");
+                                    if(descripcionMetodoPago != "debito" && descripcionMetodoPago != "credito"){
+                                        nombreCliente = prompt("Escriba su nombre: ");
+                                        direccionCliente = prompt("Escriba su direccion de domicilio: ");
+                                        objCliente = new Persona (nombreCliente,"", direccionCliente);
+                                    }
+                                }
+                            }
+                            else{
+                                nombreCliente = prompt("Escriba su nombre: ");
+                                numeroCuentaCliente = prompt("Escriba el numero de su cuenta bancaria: ");
+                                direccionCliente = prompt("Escriba su direccion de domicilio: ");
+                                objCliente = new Persona (nombreCliente, numeroCuentaCliente, direccionCliente);
+                                while(nombreCliente == "" || nombreCliente == null || direccionCliente == "" || direccionCliente == null || numeroCuentaCliente == "" || numeroCuentaCliente == null){
+                                    nombreCliente = prompt("Escriba su nombre: ");
+                                        numeroCuentaCliente = prompt("Escriba el numero de su cuenta bancaria: ");
+                                        direccionCliente = prompt("Escriba su direccion de domicilio: ");
+                                        objCliente =  new Persona (nombreCliente, numeroCuentaCliente, direccionCliente);
+                                }                       
+                            }
+                            detalleFactura = mostrarDetalleFactura(carritoDeCompras, objCliente, descripcionMetodoPago);
+                            realizoPago = confirm(detalleFactura);
+                            while(realizoPago == false && canceloCompra == false){
+                                canceloCompra = confirm("Esta seguro de cancelar su compra?");
+                                if(canceloCompra == false){
+                                    realizoPago = confirm(detalleFactura);
+                                }
+                            }
+                            if(realizoPago == true){
+                                alert("Gracias por su compra Sr(a): " + nombreCliente);
+                                actualizoStock = actualizarStockProducto(carritoDeCompras, productos);
+                                deseaVolverComprar = confirm("Desea comprar otro producto?");
+                                if(deseaVolverComprar == false){
+                                    realizoCompra = true;
+                                }else{
+                                    carritoDeCompras = [];
+                                }
+                            }
+                        } 
+                    }       
+                }
+                else{
+                    existeStock = false;
+                    alert("Cantidad incorrecta o no hay stock del producto, seleccione otro producto.");
+                }
+            }
+        }
+    }
+}
 
 function obtenerProductos(productos){
     let listaProductos = "";
@@ -136,7 +180,6 @@ function consultarProducto(numeroProducto, productos){
 }
 function consultarStock(cantidadPedida, numeroProducto, productos){
     let encontroStock = false;
-    console.log(cantidadPedida);
     if(cantidadPedida == null){
         cantidadPedida = 0;
     }
@@ -161,13 +204,48 @@ function consultarMetodoPago(metodoPagoEligdo, metodosPago){
     }
     return tipoPago
 }
-function actualizarStockProducto(cantidadPedida, indiceProducto, productos){
+function actualizarStockProducto(carritoDeCompras, productos){
     let actualizacionExitosa = false;
-    let nuevoStock = 0;
-    nuevoStock = productos[indiceProducto].stock - cantidadPedida;
-    if(nuevoStock >= 0){
-        productos[indiceProducto].stock = nuevoStock;
-        actualizacionExitosa = true;
+    for (const objProducto of productos) {
+        let nuevoStock = 0;
+        let objProductoCarritoCompra = carritoDeCompras.find((objProductoCC) => objProductoCC.id == objProducto.id);
+        if(objProductoCarritoCompra != null){
+            nuevoStock = objProductoCarritoCompra.stock - objProductoCarritoCompra.cantidadPedida; 
+            objProducto.stock = nuevoStock;
+            objProducto.cantidadPedida = 0;
+        }
     }
+    actualizacionExitosa = true;
+    
     return actualizacionExitosa;
 }
+function agregarAlCarrito(numeroProducto, cantidadPedida, carritoDeCompras){
+    let objProductoCarritoCompra = carritoDeCompras.find((objProducto) => objProducto.id == numeroProducto);
+    if(objProductoCarritoCompra == null){
+        let objProductoAgregar = productos.find((objProducto) => objProducto.id == numeroProducto);
+        objProductoAgregar.cantidadPedida = cantidadPedida;
+        carritoDeCompras.push(objProductoAgregar);
+    }
+    else{
+        for (const objProducto of carritoDeCompras) {
+            if(objProducto.id == numeroProducto){
+                objProducto.cantidadPedida = cantidadPedida;
+                break;
+            }
+        }
+    }
+    
+}
+
+function mostrarDetalleFactura(carritoDeCompras, cliente, descripcionMetodoPago){
+    let total = 0;
+    let facturaElectronica = "************** FACTURA ELECTRONICA **************";
+    facturaElectronica = facturaElectronica + "\n\nNombre: " + cliente.nombre + "\nDireccion de domicilio: " + cliente.direccion;
+    for(const objProducto of carritoDeCompras){
+        facturaElectronica = facturaElectronica + "\nProductos Comprados: " + objProducto.producto + "\nCantidad de productos comprados: " + objProducto.cantidadPedida + "\nPrecio del producto: S/. " + parseFloat(objProducto.precio);
+    }
+    total = carritoDeCompras.reduce((acumulador, objProducto) => acumulador + objProducto.calcularSubTotal(), 0)
+    facturaElectronica = facturaElectronica + "\nMetodo de Pago: " + descripcionMetodoPago + "\nTotal: S/. " + total + "\n*******************************************************";
+    return(facturaElectronica);
+}
+
