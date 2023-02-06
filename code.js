@@ -1,3 +1,4 @@
+// variables
 let numeroProducto = 0;
 let listaProductosTienda = "";
 let indiceProducto = null;
@@ -12,10 +13,7 @@ let realizoPago = false;
 let realizoCompra = false;
 let canceloCompra = false;
 let actualizoStock = false;
-let deseaVolverComprar = false;
 let total = 0;
-let precioProducto = 0;
-let descripcionProducto = "";
 let deseaAgregarMasProductos = false;
 let detalleFactura = "";
 let nuevaCantidadPedida = 0;
@@ -34,6 +32,7 @@ let carritoDeCompras = [];
 let objCliente;
 let objProducto;
 
+// odjetos
 class Persona {
     constructor(nombre, numeroCuenta, direccion){
         this.nombre = nombre;
@@ -63,7 +62,7 @@ class Productos {
         }
         return nuevaCantidadPedida;
     }
-
+    
 }
 let producto1 = new Productos(1, "Alarmas", 15, 50, 0);
 let producto2 = new Productos(2, "Escopeta", 34, 30, 0);
@@ -71,15 +70,20 @@ let producto3 = new Productos(3, "Binocular", 24, 45, 0);
 
 let productos = [producto1,producto2,producto3];
 
-alert("Bienvenido a Tienda Mackalister");
-realizarCompra()
+
 
 function realizarCompra(){
+    carritoDeCompras = [];
+
+    alert("Bienvenido a Tienda Mackalister");
+    realizoCompra = false;
     while(realizoCompra == false){
         //mostrar listad de productos
-        listaProductosTienda = obtenerProductos(productos);
+        listaProductosTienda = retornarProductosStorage();
         numeroProducto = prompt("Escoja el producto que quiera comprar: " + listaProductosTienda + "\n\nEscriba el numero del producto que quiera comprar:");
         if(numeroProducto == null){
+            realizoCompra = true;
+            actualizarHTML();
             break;
         }
         else{
@@ -90,9 +94,7 @@ function realizarCompra(){
             else{
                 cantidadPedida = prompt("Ingrese cantidad deseada del producto: ");
                 objProducto = productos.find((objProducto) => objProducto.id == numeroProducto);
-                console.log("objProducto: " + objProducto);
                 nuevaCantidadPedida = objProducto.actualizarCantidadPedida(cantidadPedida);
-                console.log("nuevaCantidadPedida: " + nuevaCantidadPedida);
                 if(nuevaCantidadPedida != 0){
                     existeStock = true;
                     agregarAlCarrito(numeroProducto, nuevaCantidadPedida, carritoDeCompras);
@@ -138,17 +140,21 @@ function realizarCompra(){
                                 if(canceloCompra == false){
                                     realizoPago = confirm(detalleFactura);
                                 }
-                            }
-                            if(realizoPago == true){
-                                alert("Gracias por su compra Sr(a): " + nombreCliente);
-                                actualizoStock = actualizarStockProducto(carritoDeCompras, productos);
-                                deseaVolverComprar = confirm("Desea comprar otro producto?");
-                                if(deseaVolverComprar == false){
+                                else{
                                     realizoCompra = true;
-                                }else{
-                                    carritoDeCompras = [];
+                                    actualizarHTML();  
                                 }
                             }
+                            if(realizoPago == true){
+                                realizoCompra = true;
+                                alert("Gracias por su compra Sr(a): " + nombreCliente);
+                                actualizoStock = actualizarStockProducto(carritoDeCompras, productos);
+                                actualizarHTML();
+                            }
+                        }
+                        else{
+                            realizoCompra = true;
+                            actualizarHTML();
                         } 
                     }       
                 }
@@ -160,7 +166,15 @@ function realizarCompra(){
         }
     }
 }
-
+// Evento
+let boton = document.getElementById("botonVolverComprar")
+boton.onclick = () => {realizarCompra()}
+if(realizoCompra == true){
+    actualizarHTML();
+}
+let botonReniciar = document.getElementById("botonReiniciarSistema")
+botonReniciar.onclick = () => {localStorage.clear()}
+// funciones
 function obtenerProductos(productos){
     let listaProductos = "";
     for(let i=0;i<productos.length;i++){
@@ -215,10 +229,30 @@ function actualizarStockProducto(carritoDeCompras, productos){
             objProducto.cantidadPedida = 0;
         }
     }
+    guardarProductosStorage(productos);
     actualizacionExitosa = true;
     
     return actualizacionExitosa;
 }
+
+function guardarProductosStorage(productos){
+    let productosJson =  JSON.stringify(productos);
+    localStorage.setItem("productosJson", productosJson);
+}
+function retornarProductosStorage(){
+    let productos = [];
+    let listaProductosTienda = "";
+    let arregloProductos = JSON.parse(localStorage.getItem("productosJson"));
+    if(arregloProductos == null){
+        productos = primerArregloObjProductos();
+        listaProductosTienda = obtenerProductos(productos);
+    }
+    else{
+        listaProductosTienda = obtenerProductos(arregloProductos);
+    }
+    return(listaProductosTienda);
+}
+
 function agregarAlCarrito(numeroProducto, cantidadPedida, carritoDeCompras){
     let objProductoCarritoCompra = carritoDeCompras.find((objProducto) => objProducto.id == numeroProducto);
     if(objProductoCarritoCompra == null){
@@ -248,4 +282,17 @@ function mostrarDetalleFactura(carritoDeCompras, cliente, descripcionMetodoPago)
     facturaElectronica = facturaElectronica + "\nMetodo de Pago: " + descripcionMetodoPago + "\nTotal: S/. " + total + "\n*******************************************************";
     return(facturaElectronica);
 }
+function actualizarHTML() {
+    let nuevoBoton = document.getElementById("botonVolverComprar");
+    nuevoBoton.innerText = "Volver a comprar";
+    let nuevoMensaje = document.getElementById("mensaje");
+    nuevoMensaje.innerHTML = "<h2> A terminado su compra </h2>";
+}
+function primerArregloObjProductos(){
+    let producto1 = new Productos(1, "Alarmas", 15, 50, 0);
+    let producto2 = new Productos(2, "Escopeta", 34, 30, 0);
+    let producto3 = new Productos(3, "Binocular", 24, 45, 0);
 
+    let productos = [producto1,producto2,producto3];
+    return(productos);
+}

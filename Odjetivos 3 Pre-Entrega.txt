@@ -1,0 +1,12 @@
+Tercera Pre-Entrega
+-JSON
+-Storage
+-DOM
+-Eventos
+ODJETIVOS
+
+-Definir Eventos (botones)
+
+-Modificar DOM para realizar salidas de un procesamiento (Modificar el HTML desde JS Para mostra un mensaje de que concluyo su compra y un boton que dice "volver a comprar")
+
+-Almacenar datos (clave-valor) en el Storage y recuperarlos (actualizar stock o carrito de compras)
